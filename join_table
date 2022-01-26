@@ -1,0 +1,20 @@
+gaData = from(bucket:"rt-dashboard-project/autogen")
+    |> range(start:-5m)
+    |> filter(fn: (r) => r._measurement == "allActiveUsers" and (r._field == "users"))
+    |> aggregateWindow(every: 10s, fn: max)
+
+fbData = from(bucket:"rt-dashboard-project/autogen")
+    |> range(start:-5m)
+    |> filter(fn: (r) => r._measurement == "fbGraphData" and (r._field == "cost"))
+    |> aggregateWindow(every: 10s, fn: max)
+
+join(
+      tables:{ga:gaData, fb:fbData},
+      on:["_time","_stop","_start"]
+)
+
+
+|> map(fn:(r) => ({
+        _time: r._time,
+        _value: r._value_fb / r._value_ga,
+    }))
